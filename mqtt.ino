@@ -1,8 +1,10 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
 
 // WiFi網絡參數
-const char* ssid = "HITRON-C270";
+const char* ssid = "wander_one";
 const char* password = "cxz123499";
 
 // MQTT網絡參數
@@ -11,7 +13,11 @@ const char* mqtt_server = "140.125.207.230";
 const char* mqtt_user = "guest";
 const char* mqtt_password = "guest";
 const char* mqtt_topic = "weightTopic";
+// 設定 LCD 顯示器的 I2C 位址和列數、行數
+LiquidCrystal_I2C lcd(0x27, 16, 2);//SDA=D1腳位 SCL=D2腳位
 
+//蜂鳴器腳位
+const int buzzerPin = D6;  // 設定蜂鳴器的腳位為 D6
 // 超聲波感測器連接引腳
 const int trigPin = D8;
 const int echoPin = D7;
@@ -37,13 +43,43 @@ long calculateDistance() {
   
   return distance;
 }
-
+void showDistanceOnLCD(char* distance){
+    // 清空 LCD 顯示器
+  lcd.clear();
+  // 設定游標位置為第一列第一個位置
+  lcd.setCursor(0, 0);
+  // 在 LCD 顯示器上顯示文字
+  lcd.print("Distance:");
+  lcd.print(distance);
+  // 設定游標位置為第二列第一個位置
+  lcd.setCursor(0, 1);
+  // 在 LCD 顯示器上顯示文字
+  lcd.print("I am an Arduino.");
+   // 等待 2 秒
+  delay(2000);
+}
+void showTemperatureAndHumidityOnLCD(char* distance){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Temperature:");
+  lcd.print(distance);
+  lcd.setCursor(0, 1);
+  lcd.print("Humidity:");
+  lcd.print(distance);
+   // 等待 1 秒
+  delay(1000);
+}
 void setup() {
   // 初始化串口和GPIO引腳
   Serial.begin(9600);
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-
+  // 將蜂鳴器的腳位設為輸出模式
+  pinMode(buzzerPin, OUTPUT);  
+  // 初始化 LCD 顯示器
+  lcd.init();
+  // 打開 LCD 顯示器
+  lcd.backlight();
   // 連接WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -72,12 +108,21 @@ void loop() {
   long distance = calculateDistance();
   Serial.print("Distance: ");
   Serial.println(distance);
-
+  char distanceStr[30];
+  
+  if(distance <=50){
+    Serial.print("\nToo Closed\n");
+    sprintf(distanceStr, "%ld", distance);
+    tone(buzzerPin, 1000);  // 發送 1000 Hz 的聲音信號
+    delay(500);  // 持續發送聲音信號的時間，這裡是 0.5 秒
+    noTone(buzzerPin);  // 停止發送聲音信號
+  }else{
+    sprintf(distanceStr, "%ld", distance);
+  }
+  showDistanceOnLCD(distanceStr);
   // 發送MQTT消息
-  char distanceStr[10];
-  sprintf(distanceStr, "%ld", distance);
   client.publish(mqtt_topic, distanceStr);
 
-  // 等待1秒
-  delay(1000);
+  // 等待0.5秒
+  delay(500);
 }

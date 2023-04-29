@@ -19,18 +19,20 @@ const char* mqtt_password = "guest";
 
 // 設定 LCD 顯示器的 I2C 位址和列數、行數
 LiquidCrystal_I2C lcd(0x27, 16, 2);//SDA=D1腳位 SCL=D2腳位
-
-//蜂鳴器腳位
-const int buzzerPin = D6;  // 設定蜂鳴器的腳位為 D6
-// 超聲波感測器連接引腳
-const int trigPin = D8;
-const int echoPin = D7;
+// 設定水位感測器腳位為D3
+const int waterSensorPin = D3; 
 
 #define DHTPIN D4     // 感測器接口鍵腳為D4
 #define DHTTYPE DHT11   // 感測器型號為DHT11
-DHT dht(DHTPIN, DHTTYPE);
+//蜂鳴器腳位 D6
+const int buzzerPin = D6;  
+// 超聲波感測器連接引腳 D7 D8
+const int echoPin = D7;
+const int trigPin = D8;
 
-// 建立WiFi客戶端和MQTT客戶端
+
+// 實例化 Sensor 物件
+DHT dht(DHTPIN, DHTTYPE);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -51,6 +53,20 @@ long calculateDistance() {
   
   return distance;
 }
+void showWaterOnLCD(){
+  int sensorValue = analogRead(waterSensorPin); // 讀取水位感測器數值
+  float voltage = sensorValue * (3.3 / 1023.0); // 將數值轉換為電壓值
+  float waterLevel = 100 - (voltage / 3.3) * 100; // 將電壓值轉換為水位百分比
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Water:");
+  lcd.print(waterLevel);
+  lcd.setCursor(0, 1);
+  lcd.print("Voltage:");
+  lcd.print(voltage);
+  delay(2000);
+}
+
 void showConnectEroorOnLCD(){
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -81,7 +97,8 @@ void showDistanceOnLCD(){
   lcd.print("Distance:");
   lcd.print(distance);
   lcd.setCursor(0, 1);
-  lcd.print("I am an Arduino.");
+  lcd.print("MachineID ");
+  lcd.print(machineID);
   
   //傳送MQTT訊號
   time_t now = time(nullptr);// Get current time
@@ -175,5 +192,6 @@ void setup() {
 void loop() {
   showDistanceOnLCD();
   showTemperatureAndHumidityOnLCD();
+  showWaterOnLCD();
   delay(1000);// 等待1秒
 }

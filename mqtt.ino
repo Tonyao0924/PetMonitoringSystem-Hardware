@@ -19,10 +19,10 @@ const char* mqtt_password = "guest";
 
 // 設定 LCD 顯示器的 I2C 位址和列數、行數
 LiquidCrystal_I2C lcd(0x27, 16, 2);//SDA=D1腳位 SCL=D2腳位
-// 設定水位感測器腳位為D3
-const int waterSensorPin = D3; 
+// 設定水位感測器腳位為D8
+const int waterSensorPin = 8; 
 
-#define DHTPIN D4     // 感測器接口鍵腳為D4
+#define DHTPIN 4     // 感測器接口鍵腳為D4
 #define DHTTYPE DHT11   // 感測器型號為DHT11
 //蜂鳴器腳位 D6
 const int buzzerPin = D6;  
@@ -57,6 +57,8 @@ void showWaterOnLCD(){
   int sensorValue = analogRead(waterSensorPin); // 讀取水位感測器數值
   float voltage = sensorValue * (3.3 / 1023.0); // 將數值轉換為電壓值
   float waterLevel = 100 - (voltage / 3.3) * 100; // 將電壓值轉換為水位百分比
+  Serial.print("waterLevel");
+  Serial.print(waterLevel);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Water:");

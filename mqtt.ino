@@ -24,6 +24,9 @@ const int waterSensorPin = 8;
 
 #define DHTPIN 4     // 感測器接口鍵腳為D4
 #define DHTTYPE DHT11   // 感測器型號為DHT11
+
+#define AHT10_ADDRESS 0x38 // AHT10 I2C 位址
+
 //蜂鳴器腳位 D6
 const int buzzerPin = D6;  
 // 超聲波感測器連接引腳 D7 D8
@@ -35,6 +38,66 @@ const int trigPin = D8;
 DHT dht(DHTPIN, DHTTYPE);
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+void showAHT10TemperatureAndHumidityOnLCD(){
+  // 讀取溫濕度數據
+  Wire.beginTransmission(AHT10_ADDRESS);
+  Wire.write(0xAC);
+  Wire.write(0x33);
+  Wire.write(0x00);
+  Wire.endTransmission();
+  delay(500);
+
+  Wire.requestFrom(AHT10_ADDRESS, 6);
+  if (Wire.available() == 6) {
+    byte data[6];
+    for (int i = 0; i < 6; i++) {
+      data[i] = Wire.read();
+    }
+    // 解析溫濕度數據
+    int humidity = ((data[1] << 12) | (data[2] << 4) | (data[3] >> 4)) * 100 / 0x100000;
+    int temperature = (((data[3] & 0x0F) << 16) | (data[4] << 8) | data[5]) * 200 / 0x100000 - 50;
+    
+    const char* mqtt_topic = "temperature/";
+    char mqttFullTopic[40]; // 定義一個字符數組用來存儲結果
+    strcpy(mqttFullTopic, mqtt_topic);
+    strcat(mqttFullTopic, machineID); 
+    // 檢查是否成功讀取數據 輸出數據
+    if (isnan(temperature) || isnan(humidity)) {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Temperature:");
+      lcd.print("None");
+      lcd.setCursor(0, 1);
+      lcd.print("Humidity:");
+      lcd.print("None");
+    }else{
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Temperature:");
+      lcd.print(temperature);
+      lcd.print("°C");
+      lcd.setCursor(0, 1);
+      lcd.print("Humidity:");
+      lcd.print(humidity);
+    }
+    //傳送MQTT訊號
+    time_t now = time(nullptr);// Get current time
+    char date[11];
+    sprintf(date, "%04d-%02d-%02d", year(now), month(now), day(now));
+    // 創建一個JSON物件並填充數據
+    DynamicJsonDocument doc(256);
+    doc["Temperature"] = temperature;
+    doc["Humidity"] = humidity;
+    doc["Time"] = date;
+    // 將JSON物件轉換成字串
+    String json_str;
+    serializeJson(doc, json_str);
+    // 發送MQTT消息
+    client.publish(mqttFullTopic, json_str.c_str());
+    delay(2000);
+  }
+}
 
 // 計算距離的函數
 long calculateDistance() {
@@ -117,7 +180,7 @@ void showDistanceOnLCD(){
   client.publish(mqttFullTopic, json_str.c_str());
   delay(2000);// 等待 2 秒
 }
-void showTemperatureAndHumidityOnLCD(){
+void showDHT11TemperatureAndHumidityOnLCD(){
   const char* mqtt_topic = "temperature/";
   char mqttFullTopic[40]; // 定義一個字符數組用來存儲結果
   strcpy(mqttFullTopic, mqtt_topic);
@@ -166,7 +229,15 @@ void setup() {
   pinMode(buzzerPin, OUTPUT);  
   lcd.init();// 初始化 LCD 顯示器
   lcd.backlight();// 打開 LCD 顯示器
-  dht.begin();
+  dht.begin();//初始化 DHT11
+  
+  Wire.begin();
+  delay(100);
+  // 初始化 AHT10
+  Wire.beginTransmission(AHT10_ADDRESS);
+  Wire.write(0xE1);
+  Wire.write(0x08);
+  Wire.endTransmission();
   // 連接WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -193,7 +264,8 @@ void setup() {
 
 void loop() {
   showDistanceOnLCD();
-  showTemperatureAndHumidityOnLCD();
+  showDHT11TemperatureAndHumidityOnLCD();
+  showAHT10TemperatureAndHumidityOnLCD();
   showWaterOnLCD();
   delay(1000);// 等待1秒
 }

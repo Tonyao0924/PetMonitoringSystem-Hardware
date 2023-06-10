@@ -2,7 +2,6 @@
 #include <PubSubClient.h>
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h> //LiquidCrystal_I2C
-#include <DHT.h>//Adafruit DHT sensor library
 #include "Adafruit_AHTX0.h"  // AHT10 library
 #include <ArduinoJson.h> //ArduinoJson
 #include <TimeLib.h> //Time
@@ -19,8 +18,6 @@ const char* mqtt_password = "guest";
 
 // 設定水位感測器腳位為D8
 const int waterSensorPin = 8; 
-#define DHTPIN 4     // 感測器接口鍵腳為D4
-#define DHTTYPE DHT11   // 感測器型號為DHT11
 //const int buzzerPin = D6; //蜂鳴器腳位 D6
 const int buzzerPin = 6;   
 const int echoPin = 7;
@@ -29,7 +26,6 @@ const int trigPin = 8;
 //const int trigPin = D8;
 
 // 實例化 Sensor 物件
-//DHT dht(DHTPIN, DHTTYPE);
 Adafruit_AHTX0 aht;
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -142,9 +138,6 @@ void showDistanceOnLCD(){
   lcd.setCursor(0, 0);
   lcd.print("Distance:");
   lcd.print(distance);
-  lcd.setCursor(0, 1);
-  lcd.print("MachineID ");
-  lcd.print(machineID);
   
   //傳送MQTT訊號
   time_t now = time(nullptr);// Get current time
@@ -161,48 +154,7 @@ void showDistanceOnLCD(){
   client.publish(mqttFullTopic, json_str.c_str());
   delay(2000);// 等待 2 秒
 }
-//void showDHT11TemperatureAndHumidityOnLCD(){
-//  const char* mqtt_topic = "temperature/";
-//  char mqttFullTopic[40]; // 定義一個字符數組用來存儲結果
-//  strcpy(mqttFullTopic, mqtt_topic);
-//  strcat(mqttFullTopic, machineID); 
-//  float temperature = dht.readTemperature();
-//  float humidity = dht.readHumidity();
-//    // 檢查是否成功讀取數據
-//  if (isnan(temperature) || isnan(humidity)) {
-//    lcd.clear();
-//    lcd.setCursor(0, 0);
-//    lcd.print("Temperature:");
-//    lcd.print("None");
-//    lcd.setCursor(0, 1);
-//    lcd.print("Humidity:");
-//    lcd.print("None");
-//  }else{
-//    lcd.clear();
-//    lcd.setCursor(0, 0);
-//    lcd.print("Temperature:");
-//    lcd.print(temperature);
-//    lcd.setCursor(0, 1);
-//    lcd.print("Humidity:");
-//    lcd.print(humidity);
-//  }
-//  //傳送MQTT訊號
-//  time_t now = time(nullptr);// Get current time
-//  char date[11];
-//  sprintf(date, "%04d-%02d-%02d", year(now), month(now), day(now));
-//  // 創建一個JSON物件並填充數據
-//  DynamicJsonDocument doc(256);
-//  doc["Temperature"] = temperature;
-//  doc["Humidity"] = humidity;
-//  doc["Time"] = date;
-//  // 將JSON物件轉換成字串
-//  String json_str;
-//  serializeJson(doc, json_str);
-//  // 發送MQTT消息
-//  client.publish(mqttFullTopic, json_str.c_str());
-//  
-//  delay(2000);
-//}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("Adafruit AHT10/AHT20 demo!");
@@ -210,18 +162,11 @@ void setup() {
   //  pinMode(echoPin, INPUT);
   //  pinMode(buzzerPin, OUTPUT);
   //Initialize
-  //  Wire.begin();       // 初始化I2C通訊
-  //  dht.begin();//初始化 DHT11
   Serial.println("Before Init Object");
   aht.begin();
   lcd.begin(16, 2);
   lcd.backlight();
   Serial.println("After Init Object");
-  // 初始化 AHT10
-  //  if (! aht.begin()) {
-  //    Serial.println("Could not find AHT? Check wiring");
-  //    while (1) delay(10);
-  //  }
   // 連接WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -245,10 +190,18 @@ void setup() {
     }
   }
 }
-
+void showMachineInfo(){
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.setCursor(0, 1);
+  lcd.print("MachineID ");
+  lcd.print(machineID);
+  delay(2000);// 等待 2 秒
+}
 void loop() {
-  showDistanceOnLCD();
-//  showDHT11TemperatureAndHumidityOnLCD();
+  showMachineInfo();
+//  showDistanceOnLCD();
+
   showAHT10TemperatureAndHumidityOnLCD();
   showWaterOnLCD();
   delay(1000);// 等待1秒

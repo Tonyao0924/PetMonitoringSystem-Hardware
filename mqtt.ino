@@ -210,7 +210,7 @@ void showMachineInfo(){
 void monitorWater(){
    // 讀取當前水位
   currentWaterLevel = analogRead(waterSensorPin);
-  float voltage = sensorValue * (3.3 / 1023.0); // 將數值轉換為電壓值
+  float voltage = currentWaterLevel * (3.3 / 1023.0); // 將數值轉換為電壓值
   float waterLevel = 100 - (voltage / 3.3) * 100; // 將電壓值轉換為水位百分比
   Serial.print("waterLevel");
   Serial.print(waterLevel);

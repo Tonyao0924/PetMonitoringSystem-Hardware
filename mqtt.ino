@@ -212,6 +212,15 @@ void monitorWater(){
   currentWaterLevel = analogRead(waterSensorPin);
   float voltage = sensorValue * (3.3 / 1023.0); // 將數值轉換為電壓值
   float waterLevel = 100 - (voltage / 3.3) * 100; // 將電壓值轉換為水位百分比
+  Serial.print("waterLevel");
+  Serial.print(waterLevel);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Water:");
+  lcd.print(waterLevel);
+  lcd.setCursor(0, 1);
+  lcd.print("Voltage:");
+  lcd.print(voltage);
   
   if (currentWaterLevel < previousWaterLevel) {
     int waterToPump = previousWaterLevel - currentWaterLevel;
@@ -238,6 +247,6 @@ void loop() {
 //  showDistanceOnLCD();
   showAHT10TemperatureAndHumidityOnLCD();
   monitorWater();
-  showWaterOnLCD();
+  // showWaterOnLCD();
   delay(1000);// 等待1秒
 }

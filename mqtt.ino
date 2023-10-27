@@ -18,12 +18,17 @@ const char* mqtt_password = "guest";
 
 // 設定水位感測器腳位為D8
 const int waterSensorPin = 8; 
+//抽水馬達的繼電器連接到D1
+const int pumpPin = 5;
 //const int buzzerPin = D6; //蜂鳴器腳位 D6
 const int buzzerPin = 6;   
 const int echoPin = 7;
 const int trigPin = 8;
 //const int echoPin = D7; // 超聲波感測器連接引腳 D7 D8
 //const int trigPin = D8;
+//水位初始設置
+int currentWaterLevel = 0; // 當前水位
+int previousWaterLevel = 0; // 上一次的水位
 
 // 實例化 Sensor 物件
 Adafruit_AHTX0 aht;
@@ -161,6 +166,9 @@ void setup() {
   //  pinMode(trigPin, OUTPUT);
   //  pinMode(echoPin, INPUT);
   //  pinMode(buzzerPin, OUTPUT);
+  // 初始化水位感測器和抽水馬達
+  pinMode(waterSensorPin, INPUT);
+  pinMode(pumpPin, OUTPUT);
   //Initialize
   Serial.println("Before Init Object");
   aht.begin();
@@ -197,6 +205,33 @@ void showMachineInfo(){
   lcd.print("MachineID ");
   lcd.print(machineID);
   delay(2000);// 等待 2 秒
+}
+
+void monitorWater(){
+   // 讀取當前水位
+  currentWaterLevel = analogRead(waterSensorPin);
+  float voltage = sensorValue * (3.3 / 1023.0); // 將數值轉換為電壓值
+  float waterLevel = 100 - (voltage / 3.3) * 100; // 將電壓值轉換為水位百分比
+  
+  if (currentWaterLevel < previousWaterLevel) {
+    int waterToPump = previousWaterLevel - currentWaterLevel;
+    // 上傳減少的水量到MQTT
+    String topic = "water/";
+    String payload = String(waterToPump);
+     Serial.print("減少的水位:");
+      Serial.println(waterToPump);
+    client.publish(topic.c_str(), payload.c_str());
+
+    // 啟動抽水馬達以補充水位
+    digitalWrite(pumpPin, LOW);
+    delay(waterLevel*1000/24); // 設定抽水時間
+    digitalWrite(pumpPin, HIGH); // 停止抽水
+  }
+
+  // 更新上一次的水位
+  previousWaterLevel = currentWaterLevel;
+}
+  
 }
 void loop() {
   showMachineInfo();

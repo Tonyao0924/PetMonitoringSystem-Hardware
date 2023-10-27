@@ -237,6 +237,7 @@ void loop() {
   showMachineInfo();
 //  showDistanceOnLCD();
   showAHT10TemperatureAndHumidityOnLCD();
+  monitorWater();
   showWaterOnLCD();
   delay(1000);// 等待1秒
 }

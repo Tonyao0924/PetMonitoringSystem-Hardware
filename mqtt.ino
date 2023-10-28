@@ -11,6 +11,12 @@
 
 
 
+// LCD QRCODE
+#include <SPI.h>
+#include "LCD_Driver.h"
+#include "GUI_Paint.h"
+#include <qrcode.h>  // https://github.com/ricmoo/QRCode
+
 // WiFi網絡參數
 const char* ssid = "wander_one";
 const char* password = "cxz123499";
@@ -165,6 +171,32 @@ void showConnectEroorOnLCD(){
   lcd.print("Retype AP Info");
   delay(2000); 
 }
+// LCD QRCODE
+void CreateQRcode(){
+        Config_Init();
+        LCD_Init();
+        LCD_SetBacklight(100); 
+    int version = 2;
+      Paint_NewImage(LCD_WIDTH, LCD_HEIGHT, 90, WHITE);
+      Paint_SetRotate(ROTATE_0);
+      Paint_Clear(WHITE);
+    QRCode qrcode;
+      uint8_t qrcodeData[qrcode_getBufferSize(version)];
+      qrcode_initText(&qrcode, qrcodeData, version, ECC_MEDIUM, "https://www.google.com/");
+    int offset_x = 35;
+    int offset_y = 60;
+      for (int y = 0; y < qrcode.size; y++) {
+        for (int x = 0; x < qrcode.size; x++) {
+          int newX = offset_x + (x * 4);
+          int newY = offset_y + (y * 4);
+          if(qrcode_getModule(&qrcode, x, y)){
+            Paint_DrawRectangle(newX, newY, newX+4, newY+4, BLACK, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+          }else{
+            Paint_DrawRectangle(newX, newY, newX+4, newY+4, WHITE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+          }
+        }
+      }
+}
 
 void showDistanceOnLCD(){
   const char* mqtt_topic = "distance/";
@@ -249,6 +281,7 @@ void setup() {
       delay(5000);
     }
   }
+  CreateQRcode();
 }
 void showMachineInfo(){
   lcd.clear();

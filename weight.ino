@@ -32,33 +32,27 @@ const char* password = "1223334444";
 
 
 void oncetime() {
-  scale.power_up();
   firstw = scale.get_units(10);
-
-  scale.power_down();
-  delay(1000);
-
-  for (int i = 90; i > 0; i -= 3) {
-    myServo.write(i);
+  Serial.println(firstw);
+  Serial.print(open);
+  Serial.print(alreadyopen);
+  if (firstw < 50 && alreadyopen == false) {
+    open = true;
+    alreadyopen = true;
+    myServo.write(0);
+    for (int i = 0; i < 90; i++) {
+      myServo.write(i);
+      delay(1);
+    }
   }
-  //  endw = scale.get_units(10);
-  //  while(endw - firstw > 100){
-  //    endw = scale.get_units(10);
-  //    delay(100);
-  //  }
-  myServo.write(0);
-  for (int i = 0; i < 90; i++) {
-    myServo.write(i);
-    delay(1);
+  if (firstw > 200 && open == true) {
+    alreadyopen = false;
+    open = false;
+    for (int i = 90; i > 0; i -= 3) {
+      myServo.write(i);
+      delay(1);
+    }
   }
-
-  scale.power_up();
-  delay(1000);
-  endw = scale.get_units(10);
-  scale.power_down();
-  String topic = "weight/";
-  String payload = String(firstw - endw);
-  client.publish(topic.c_str(), payload.c_str());
 
 }
 
@@ -104,26 +98,6 @@ void loop() {
   //    oncetime();
   //    delay(200);
   //  }
-  firstw = scale.get_units(10);
-  Serial.println(firstw);
-  Serial.print(open);
-  Serial.print(alreadyopen);
-  if (firstw < 50 && alreadyopen == false) {
-    open = true;
-    alreadyopen = true;
-    myServo.write(0);
-    for (int i = 0; i < 90; i++) {
-      myServo.write(i);
-      delay(1);
-    }
-  }
-  if (firstw > 200 && open == true) {
-    alreadyopen = false;
-    open = false;
-    for (int i = 90; i > 0; i -= 3) {
-      myServo.write(i);
-      delay(1);
-    }
-  }
+  oncetime();
 
 }

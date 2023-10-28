@@ -5,6 +5,11 @@
 #include "Adafruit_AHTX0.h"  // AHT10 library
 #include <ArduinoJson.h> //ArduinoJson
 #include <TimeLib.h> //Time
+#include <Arduino.h>
+#include "HX711.h"
+#include <Servo.h>
+
+
 
 // WiFi網絡參數
 const char* ssid = "wander_one";
@@ -30,11 +35,49 @@ const int trigPin = 8;
 int currentWaterLevel = 0; // 當前水位
 int previousWaterLevel = 0; // 上一次的水位
 
+//重量初始化設定
+
+// HX711 circuit wiring
+const int LOADCELL_DOUT_PIN = 12;
+const int LOADCELL_SCK_PIN = 13;
+double firstw = 0.0;
+double endw = 0.0;
+bool open = true;
+bool alreadyopen = false;
+
 // 實例化 Sensor 物件
 Adafruit_AHTX0 aht;
 WiFiClient espClient;
 PubSubClient client(espClient);
 LiquidCrystal_I2C lcd(0x27, 16, 2);//SDA=D1腳位 SCL=D2腳位
+Servo myServo;
+HX711 scale;
+
+
+void oncetime() {
+  firstw = scale.get_units(10);
+  Serial.println(firstw);
+  Serial.print(open);
+  Serial.print(alreadyopen);
+  if (firstw < 50 && alreadyopen == false) {
+    open = true;
+    alreadyopen = true;
+    myServo.write(0);
+    for (int i = 0; i < 90; i++) {
+      myServo.write(i);
+      delay(1);
+    }
+  }
+  if (firstw > 200 && open == true) {
+    alreadyopen = false;
+    open = false;
+    for (int i = 90; i > 0; i -= 3) {
+      myServo.write(i);
+      delay(1);
+    }
+  }
+
+}
 
 void showAHT10TemperatureAndHumidityOnLCD(){
     // 讀取溫濕度數據
@@ -175,6 +218,15 @@ void setup() {
   lcd.begin(16, 2);
   lcd.backlight();
   Serial.println("After Init Object");
+
+  //重量setUp
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+
+  scale.set_scale(-427.2);
+  scale.tare();
+
+  myServo.attach(14); // 連接伺服馬達
+
   // 連接WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -247,6 +299,7 @@ void loop() {
 //  showDistanceOnLCD();
   showAHT10TemperatureAndHumidityOnLCD();
   monitorWater();
+  oncetime();
   // showWaterOnLCD();
   delay(1000);// 等待1秒
 }

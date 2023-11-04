@@ -9,6 +9,7 @@ def on_connect(client, userdata, flags, rc):
     # reconnect then subscriptions will be renewed.
     client.subscribe("weightTopic")
     client.subscribe("temperature/#")
+    client.subscribe("humidity/#")
     client.subscribe("distance/#")
 
 # The callback for when a PUBLISH message is received from the server.
@@ -24,7 +25,7 @@ client.username_pw_set(
 )
 client.connect(
     os.getenv("MQTT_SERVER_IP","127.0.0.1"), 
-    os.getenv("MQTT_SERVER_PORT",1883),
+    int(os.getenv("MQTT_SERVER_PORT",1883)),
     60
 )
 

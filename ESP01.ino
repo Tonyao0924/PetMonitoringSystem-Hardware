@@ -13,6 +13,44 @@ const int mqtt_port = 1883;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+void SendWeight(float data){
+  const char* mqtt_topic = "weight/";
+  char mqttFullTopic[40];
+  strcpy(mqttFullTopic, mqtt_topic);
+  strcat(mqttFullTopic, machineID); 
+  time_t now = time(nullptr);// Get current time
+
+  char date[11];
+  sprintf(date, "%04d-%02d-%02d", year(now), month(now), day(now));
+  
+  DynamicJsonDocument doc(256);// 創建JSON並填寫數據
+  doc["Weight"] = data;
+  doc["Time"] = date;
+  
+  String json_str;
+  serializeJson(doc, json_str); // 將JSON物件轉換成字串
+  client.publish(mqttFullTopic, json_str.c_str());// 發送MQTT訊號 Topic: weight/TestD1
+}
+
+void SendWater(float data){
+  const char* mqtt_topic = "water/";
+  char mqttFullTopic[40];
+  strcpy(mqttFullTopic, mqtt_topic);
+  strcat(mqttFullTopic, machineID); 
+  time_t now = time(nullptr);// Get current time
+
+  char date[11];
+  sprintf(date, "%04d-%02d-%02d", year(now), month(now), day(now));
+  
+  DynamicJsonDocument doc(256);// 創建JSON並填寫數據
+  doc["Water"] = data;
+  doc["Time"] = date;
+  
+  String json_str;
+  serializeJson(doc, json_str); // 將JSON物件轉換成字串
+  client.publish(mqttFullTopic, json_str.c_str());// 發送MQTT訊號 Topic: water/TestD1
+}
+
 void SendTemperature(float data){
   const char* mqtt_topic = "temperature/";
   char mqttFullTopic[40];
@@ -77,6 +115,10 @@ void loop() {
       SendTemperature(data);
     }else if(command == "Humidity"){
       SendHumidity(data);
+    }else if(command == "Water"){
+      SendWater(data);
+    }else if(command == "Weight"){
+      SendWeight(data);
     }
   }
 }

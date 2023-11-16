@@ -16,8 +16,9 @@ unsigned char high_data[12] = {0};
 #define ATTINY1_HIGH_ADDR   0x78
 #define ATTINY2_LOW_ADDR   0x77
 
+const char* pet_url = "https://peterp.page.link/Petinfo";
 const char* machineID = "TestD1";
-const int pumpPin = 5; //抽水馬達的繼電器連接到D1
+const int pumpPin = 3; //抽水馬達的繼電器連接到D11
 //水位初始設置
 int currentWaterLevel = 0; // 當前水位
 int previousWaterLevel = 0; // 上一次的水位
@@ -36,7 +37,7 @@ void createQRCode(){
    Paint_Clear(WHITE);
    QRCode qrcode;
    uint8_t qrcodeData[qrcode_getBufferSize(version)];
-   qrcode_initText(&qrcode, qrcodeData, version, ECC_MEDIUM, "https://www.google.com/");
+   qrcode_initText(&qrcode, qrcodeData, version, ECC_MEDIUM, pet_url);
    int offset_x = 35;
    int offset_y = 60;
    for (int y = 0; y < qrcode.size; y++) {
@@ -56,6 +57,7 @@ void monitorWater(){
   int sensorvalue_min = 250;
   int sensorvalue_max = 255;
   int trig_section = 0;
+  int water_Level ;
 
   getLow8SectionValue();
   getHigh12SectionValue();
@@ -71,10 +73,7 @@ void monitorWater(){
     }
   }
 
-  int water_level = trig_section * 5;
-  Serial.print("Water Level: ");
-  Serial.print(water_level);
-  Serial.println("%");
+  water_Level = trig_section * 5;
   currentWaterLevel = water_Level;
   //  currentWaterLevel = analogRead(waterSensorPin);// 讀取當前水位
   //  float voltage = currentWaterLevel * (3.3 / 1023.0); // 將數值轉換為電壓值
@@ -86,19 +85,22 @@ void monitorWater(){
   //  lcd.setCursor(0, 1);
   //  lcd.print("Voltage:");
   //  lcd.print(voltage);
-   
+   int waterToPump = previousWaterLevel - currentWaterLevel;
+
+   delay(2000);
+   String waterCommand = String("Water") + "," + String((float)water_Level);//減少的水位:
+   Serial.println(waterCommand);
+
+
    if (currentWaterLevel < previousWaterLevel) {
-     int waterToPump = previousWaterLevel - currentWaterLevel;
      
-     // 上傳減少的水量到MQTT
-     String waterCommand = String("Water") + "," + String(waterToPump);//減少的水位:
-     Serial.println(waterCommand);
- 
      // 啟動抽水馬達以補充水位
      digitalWrite(pumpPin, LOW);
-     delay(waterLevel*1000/24); // 設定抽水時間
+     delay(water_Level*1000/24); // 設定抽水時間
      digitalWrite(pumpPin, HIGH); // 停止抽水
    }
+   // 上傳減少的水量到MQTT
+
    previousWaterLevel = currentWaterLevel;// 更新上一次的水位
 }
 
@@ -157,6 +159,7 @@ void showAHT10TemperatureAndHumidityOnLCD(){
    delay(2000);
    String humidityCommand = String("Humidity") + "," + String(humidityData);
    Serial.println(humidityCommand);//發送濕度指令
+   delay(2000);
    
 }
 
@@ -172,7 +175,6 @@ void showMachineInfo(){
 void setup() {
  Serial.begin(115200);
  // 初始化水位感測器和抽水馬達
- Serial.begin(SERIAL_BAUD);
  pinMode(pumpPin, OUTPUT);
  Wire.begin();
  aht.begin();

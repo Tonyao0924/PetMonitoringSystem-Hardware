@@ -17,7 +17,6 @@ unsigned char high_data[12] = {0};
 #define ATTINY2_LOW_ADDR   0x77
 
 const char* machineID = "TestD1";
-const int waterSensorPin = 8;  // 設定水位感測器腳位為D8
 const int pumpPin = 5; //抽水馬達的繼電器連接到D1
 //水位初始設置
 int currentWaterLevel = 0; // 當前水位
@@ -56,86 +55,34 @@ void createQRCode(){
 void monitorWater(){
   int sensorvalue_min = 250;
   int sensorvalue_max = 255;
-  int low_count = 0;
-  int high_count = 0;
-  while (1)
-  {
-    uint32_t touch_val = 0;
-    uint8_t trig_section = 0;
-    low_count = 0;
-    high_count = 0;
-    getLow8SectionValue();
-    getHigh12SectionValue();
+  int trig_section = 0;
 
-    Serial.println("low 8 sections value = ");
-    for (int i = 0; i < 8; i++)
-    {
-      Serial.print(low_data[i]);
-      Serial.print(".");
-      if (low_data[i] >= sensorvalue_min && low_data[i] <= sensorvalue_max)
-      {
-        low_count++;
-      }
-      if (low_count == 8)
-      {
-        Serial.print("      ");
-        Serial.print("PASS");
-      }
-    }
-    Serial.println("  ");
-    Serial.println("  ");
-    Serial.println("high 12 sections value = ");
-    for (int i = 0; i < 12; i++)
-    {
-      Serial.print(high_data[i]);
-      Serial.print(".");
+  getLow8SectionValue();
+  getHigh12SectionValue();
 
-      if (high_data[i] >= sensorvalue_min && high_data[i] <= sensorvalue_max)
-      {
-        high_count++;
-      }
-      if (high_count == 12)
-      {
-        Serial.print("      ");
-        Serial.print("PASS");
-      }
-    }
-
-    Serial.println("  ");
-    Serial.println("  ");
-
-    for (int i = 0 ; i < 8; i++) {
-      if (low_data[i] > THRESHOLD) {
-        touch_val |= 1 << i;
-
-      }
-    }
-    for (int i = 0 ; i < 12; i++) {
-      if (high_data[i] > THRESHOLD) {
-        touch_val |= (uint32_t)1 << (8 + i);
-      }
-    }
-
-    while (touch_val & 0x01)
-    {
+  for (int i = 0 ; i < 8; i++) {
+    if (low_data[i] > THRESHOLD) {
       trig_section++;
-      touch_val >>= 1;
     }
-    int waterLevel =trig_section * 5;
-    Serial.print("water level = ");
-    Serial.print(waterLevel);
-    Serial.println("% ");
-    Serial.println(" ");
-    Serial.println("*********************************************************");
   }
-  currentWaterLevel = waterLevel;
+  for (int i = 0 ; i < 12; i++) {
+    if (high_data[i] > THRESHOLD) {
+      trig_section++;
+    }
+  }
+
+  int water_level = trig_section * 5;
+  Serial.print("Water Level: ");
+  Serial.print(water_level);
+  Serial.println("%");
+  currentWaterLevel = water_Level;
   //  currentWaterLevel = analogRead(waterSensorPin);// 讀取當前水位
   //  float voltage = currentWaterLevel * (3.3 / 1023.0); // 將數值轉換為電壓值
   //  float waterLevel = 100 - (voltage / 3.3) * 100; // 將電壓值轉換為水位百分比
    lcd.clear();
    lcd.setCursor(0, 0);
    lcd.print("Water:");
-   lcd.print(waterLevel);
+   lcd.print(water_Level);
   //  lcd.setCursor(0, 1);
   //  lcd.print("Voltage:");
   //  lcd.print(voltage);
@@ -225,7 +172,7 @@ void showMachineInfo(){
 void setup() {
  Serial.begin(115200);
  // 初始化水位感測器和抽水馬達
- pinMode(waterSensorPin, INPUT);
+ Serial.begin(SERIAL_BAUD);
  pinMode(pumpPin, OUTPUT);
  Wire.begin();
  aht.begin();

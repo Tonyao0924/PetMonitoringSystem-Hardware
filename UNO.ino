@@ -3,6 +3,9 @@
 #include <LiquidCrystal_I2C.h> //LiquidCrystal_I2C
 #include <Adafruit_Sensor.h>
 #include <Adafruit_AHTX0.h>
+// Weight Sensor
+#include "HX711.h"
+#include <Servo.h>
 
 // LCD QRCODE
 #include <SPI.h>
@@ -22,9 +25,38 @@ const int pumpPin = 3; //抽水馬達的繼電器連接到D11
 //水位初始設置
 int currentWaterLevel = 0; // 當前水位
 int previousWaterLevel = 0; // 上一次的水位
+// WeightSensor
+const int LOADCELL_DOUT_PIN = 6;
+const int LOADCELL_SCK_PIN = 5;
+double firstw = 0.0;
+double endw = 0.0;
+bool open = true;
+
+Servo myServo;
+HX711 scale;
 
 Adafruit_AHTX0 aht;
 LiquidCrystal_I2C lcd(0x27, 16, 2);//SDA=D1腳位 SCL=D2腳位
+
+void oncetime()
+{
+  scale.power_up();
+  firstw = scale.get_units(10);
+  Serial.println(firstw);
+  if(firstw >= 200 && open == false){
+    open = true;
+    for (int i = 90; i > 0; i -= 3)
+    {
+      myServo.write(i);
+    }
+  }else if(firstw <= 50 && open == true){
+    open = false;
+    for (int i = 0; i < 90; i += 3)
+    {
+      myServo.write(i);
+    }
+  }
+}
 
 // LCD QRCODE
 void createQRCode(){
@@ -37,7 +69,7 @@ void createQRCode(){
    Paint_Clear(WHITE);
    QRCode qrcode;
    uint8_t qrcodeData[qrcode_getBufferSize(version)];
-   qrcode_initText(&qrcode, qrcodeData, version, ECC_MEDIUM, pet_url);
+   qrcode_initText(&qrcode, qrcodeData, version, ECC_MEDIUM,"https://lurl.cc/wXqr99");
    int offset_x = 35;
    int offset_y = 60;
    for (int y = 0; y < qrcode.size; y++) {
@@ -181,6 +213,13 @@ void setup() {
  lcd.begin(16, 2);
  lcd.backlight();
  
+ open = true;
+ scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+
+ scale.set_scale(-427.2);
+ scale.tare();
+
+ myServo.attach(4); // 連接伺服馬達
  createQRCode();
 }
 
@@ -188,5 +227,6 @@ void loop() {
  showMachineInfo();
  showAHT10TemperatureAndHumidityOnLCD();
  monitorWater();
+ oncetime();
  delay(2000);
 }

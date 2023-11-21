@@ -57,3 +57,10 @@ Grove Socket
 
 ----
 
+### Publish
+
+pipenv run python pubNew.py
+
+### Subscribe
+
+pipenv run python subNew.py

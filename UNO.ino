@@ -14,6 +14,8 @@
 #include <qrcode.h>  // https://github.com/ricmoo/QRCode
 unsigned char low_data[8] = {0};
 unsigned char high_data[12] = {0};
+unsigned long time_now = 0; 
+int period=300;
 #define NO_TOUCH       0xFE
 #define THRESHOLD      100
 #define ATTINY1_HIGH_ADDR   0x78
@@ -206,6 +208,7 @@ void showMachineInfo(){
 
 void setup() {
  Serial.begin(115200);
+ time_now = millis();
  // 初始化水位感測器和抽水馬達
  pinMode(pumpPin, OUTPUT);
  Wire.begin();
@@ -226,7 +229,10 @@ void setup() {
 void loop() {
  showMachineInfo();
  showAHT10TemperatureAndHumidityOnLCD();
- monitorWater();
+  if(millis() > time_now + period){
+        time_now = millis();
+        monitorWater();
+    }
  oncetime();
  delay(2000);
 }

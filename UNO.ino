@@ -26,7 +26,7 @@ const char* machineID = "TestD1";
 const int pumpPin = 3; //抽水馬達的繼電器連接到D11
 //水位初始設置
 int currentWaterLevel = 0; // 當前水位
-int previousWaterLevel = 0; // 上一次的水位
+int previousWaterLevel = 50; // 上一次的水位
 // WeightSensor
 const int LOADCELL_DOUT_PIN = 6;
 const int LOADCELL_SCK_PIN = 5;
@@ -130,7 +130,7 @@ void monitorWater(){
      
      // 啟動抽水馬達以補充水位
      digitalWrite(pumpPin, LOW);
-     delay(water_Level*1000/24); // 設定抽水時間
+     delay(water_Level/100*300/24*1000); // 設定抽水時間
      digitalWrite(pumpPin, HIGH); // 停止抽水
    }
    // 上傳減少的水量到MQTT
@@ -233,6 +233,10 @@ void loop() {
         time_now = millis();
         monitorWater();
     }
- oncetime();
+  if(millis() > time_now + period){
+        time_now = millis();
+        oncetime();
+    }
+ 
  delay(2000);
 }
